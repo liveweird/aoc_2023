@@ -1,15 +1,46 @@
 import re
 import typing
+from typing import Callable
+
+
+def get_seeds_part1(line: str) -> list:
+    parsed_seeds: list = re.match(r"^seeds: (.+)$", line)
+    return parsed_seeds.group(1).split(" ")
+
+
+def get_seeds_part2(line: str) -> list:
+    parsed_seeds: list = re.match(r"^seeds: (.+)$", line)
+    singles: list = parsed_seeds.group(1).split(" ")
+    pairs: list = list(zip(singles[::2], singles[1::2]))
+
+    # create an empty set
+    seeds: set = set()
+
+    # iterate through each pair in pairs
+    for pair in pairs:
+        seeds = seeds.union(set(range(int(pair[0]), int(pair[0]) + int(pair[1]))))
+        print(".")
+
+    print("done")
+
+    return list(seeds)
 
 
 def day05_part1(file_name: str) -> int:
+    return day05(file_name, get_seeds_part1)
+
+
+def day05_part2(file_name: str) -> int:
+    return day05(file_name, get_seeds_part2)
+
+
+def day05(file_name: str, get_seeds: Callable[[str], int]) -> int:
     # open the input file
     f: typing.TextIO = open(file_name, "r")
 
     # read seeds line from the file
     line: str = f.readline()
-    parsed_seeds: list = re.match(r"^seeds: (.+)$", line)
-    seeds: list = parsed_seeds.group(1).split(" ")
+    seeds = get_seeds(line)
 
     # read the empty line
     _ = f.readline()
@@ -66,3 +97,11 @@ def test_day05_part1a():
 
 def test_day05_part1b():
     assert day05_part1("./input/day05b.txt") == 31599214
+
+
+def test_day05_part2a():
+    assert day05_part2("./input/day05a.txt") == 46
+
+
+def test_day05_part2b():
+    assert day05_part2("./input/day05b.txt") == 46
