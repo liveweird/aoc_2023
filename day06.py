@@ -21,6 +21,16 @@ def get_races_b() -> list:
     return races
 
 
+def get_races_c() -> list:
+    races: list = [Race(71530, 940200)]
+    return races
+
+
+def get_races_d() -> list:
+    races: list = [Race(40929790, 215106415051100)]
+    return races
+
+
 def day06_part1(get_races: Callable[[], list]) -> int:
     # get races
     races: list = get_races()
@@ -45,3 +55,11 @@ def test_day06_part1a():
 
 def test_day06_part1b():
     assert day06_part1(get_races_b) == 6209190
+
+
+def test_day06_part2a():
+    assert day06_part1(get_races_c) == 71503
+
+
+def test_day06_part2b():
+    assert day06_part1(get_races_d) == 28545089
