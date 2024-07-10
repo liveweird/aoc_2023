@@ -8,6 +8,12 @@ class Direction(Enum):
     RIGHT = auto()
 
 
+class DirectedTile:
+    def __init__(self, pos: tuple, direction: Direction):
+        self.pos = pos
+        self.direction = direction
+
+
 class Maze:
     def __init__(self):
         self.maze = []
@@ -37,57 +43,57 @@ class Maze:
             return False
         return True
 
-    def find_next(self, i: int, j: int) -> tuple:
+    def find_next(self, i: int, j: int) -> DirectedTile or None:
         symbol = self.maze[i][j]
         if symbol == "|":
             if self.is_pos_legit(i-1, j) and not self.is_visited((i-1, j)):
-                return i-1, j, Direction.UP
+                return DirectedTile((i-1, j), Direction.UP)
             if self.is_pos_legit(i+1, j) and not self.is_visited((i+1, j)):
-                return i+1, j, Direction.DOWN
+                return DirectedTile((i+1, j), Direction.DOWN)
         elif symbol == "-":
             if self.is_pos_legit(i, j-1) and not self.is_visited((i, j-1)):
-                return i, j-1, Direction.LEFT
+                return DirectedTile((i, j-1), Direction.LEFT)
             if self.is_pos_legit(i, j+1) and not self.is_visited((i, j+1)):
-                return i, j+1, Direction.RIGHT
+                return DirectedTile((i, j+1), Direction.RIGHT)
         elif symbol == "L":
             if self.is_pos_legit(i-1, j) and not self.is_visited((i-1, j)):
-                return i-1, j, Direction.UP
+                return DirectedTile((i-1, j), Direction.UP)
             if self.is_pos_legit(i, j+1) and not self.is_visited((i, j+1)):
-                return i, j+1, Direction.RIGHT
+                return DirectedTile((i, j+1), Direction.RIGHT)
         elif symbol == "J":
             if self.is_pos_legit(i-1, j) and not self.is_visited((i-1, j)):
-                return i-1, j, Direction.UP
+                return DirectedTile((i-1, j), Direction.UP)
             if self.is_pos_legit(i, j-1) and not self.is_visited((i, j-1)):
-                return i, j-1, Direction.LEFT
+                return DirectedTile((i, j-1), Direction.LEFT)
         elif symbol == "7":
             if self.is_pos_legit(i+1, j) and not self.is_visited((i+1, j)):
-                return i+1, j, Direction.DOWN
+                return DirectedTile((i+1, j), Direction.DOWN)
             if self.is_pos_legit(i, j-1) and not self.is_visited((i, j-1)):
-                return i, j-1, Direction.LEFT
+                return DirectedTile((i, j-1), Direction.LEFT)
         elif symbol == "F":
             if self.is_pos_legit(i+1, j) and not self.is_visited((i+1, j)):
-                return i+1, j, Direction.DOWN
+                return DirectedTile((i+1, j), Direction.DOWN)
             if self.is_pos_legit(i, j+1) and not self.is_visited((i, j+1)):
-                return i, j+1, Direction.RIGHT
+                return DirectedTile((i, j+1), Direction.RIGHT)
 
-        return ()
+        return None
 
     def find_two_paths(self) -> tuple:
         paths = []
-        dirs = set()
+        dirs = []
         (i, j) = self.start
         if self.is_pos_legit(i - 1, j) and self.maze[i - 1][j] in ("|", "7", "F"):
             paths.append((i - 1, j))
-            dirs.add(Direction.UP)
+            dirs.append(Direction.UP)
         if self.is_pos_legit(i + 1, j) and self.maze[i + 1][j] in ("|", "L", "J"):
             paths.append((i + 1, j))
-            dirs.add(Direction.DOWN)
+            dirs.append(Direction.DOWN)
         if self.is_pos_legit(i, j - 1) and self.maze[i][j - 1] in ("-", "L", "F"):
             paths.append((i, j - 1))
-            dirs.add(Direction.LEFT)
+            dirs.append(Direction.LEFT)
         if self.is_pos_legit(i, j + 1) and self.maze[i][j + 1] in ("-", "7", "J"):
             paths.append((i, j + 1))
-            dirs.add(Direction.RIGHT)
+            dirs.append(Direction.RIGHT)
 
         assert len(paths) == 2
 
@@ -107,13 +113,13 @@ class Maze:
         else:
             assert False
 
-        return paths[0], paths[1]
+        return DirectedTile(paths[0], dirs[0]), DirectedTile(paths[1], dirs[1])
 
     def is_visited(self, pos: tuple) -> bool:
         return pos in self.visited.keys()
 
-    def add_to_visited(self, pos: tuple, dist: int):
-        self.visited[pos] = dist
+    def add_to_visited(self, pos: tuple, dist: int, direction: Direction):
+        self.visited[pos] = (dist, direction)
 
 
 def day10_part1(file_name: str) -> int:
@@ -125,23 +131,23 @@ def day10_part1(file_name: str) -> int:
     dist = 0
     maze.find_start()
     # print(f"Start: {maze.start}")
-    maze.add_to_visited(maze.start, dist)
-    (path1, path2) = maze.find_two_paths()
+    (tile1, tile2) = maze.find_two_paths()
+    maze.add_to_visited(maze.start, dist, tile1.direction)
 
     while True:
         # print(f"Path1: {path1}, Path2: {path2}")
 
         # traverse left and right end
         dist += 1
-        maze.add_to_visited((path1[0], path1[1]), dist)
-        maze.add_to_visited((path2[0], path2[1]), dist)
+        maze.add_to_visited((tile1.pos[0], tile1.pos[1]), dist, tile1.direction)
+        maze.add_to_visited((tile2.pos[0], tile2.pos[1]), dist, tile2.direction)
 
-        path1 = maze.find_next(path1[0], path1[1])
-        if len(path1) == 0:
+        tile1 = maze.find_next(tile1.pos[0], tile1.pos[1])
+        if tile1 is None:
             return dist
 
-        path2 = maze.find_next(path2[0], path2[1])
-        if len(path2) == 0:
+        tile2 = maze.find_next(tile2.pos[0], tile2.pos[1])
+        if tile2 is None:
             return dist
 
 
@@ -151,16 +157,16 @@ def day10_part2(file_name: str) -> int:
     maze.read_maze(file_name)
     dist = 0
     maze.find_start()
-    maze.add_to_visited(maze.start, dist)
-    (path, _) = maze.find_two_paths()
+    (tile, _) = maze.find_two_paths()
+    maze.add_to_visited(maze.start, dist, tile.direction)
 
     # traverse the whole maze, to collect the list of tiles
     while True:
         dist += 1
-        maze.add_to_visited(path, dist)
+        maze.add_to_visited((tile.pos[0], tile.pos[1]), dist, tile.direction)
 
-        path = maze.find_next(path[0], path[1])
-        if len(path) == 0:
+        tile = maze.find_next(tile.pos[0], tile.pos[1])
+        if tile is None:
             break
 
     # pick the direction, start traversing the maze
