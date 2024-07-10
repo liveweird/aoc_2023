@@ -1,4 +1,5 @@
 from enum import Enum, auto
+import sys
 
 
 class Direction(Enum):
@@ -185,10 +186,10 @@ def add_to_lefties(maze: Maze, curr_idx: int, lefties: set) -> set:
         elif tile.direction is Direction.DOWN and maze.is_pos_legit(i, j + 1) and not maze.is_visited((i, j + 1)):
             lefties.add((i, j + 1))
     elif symbol == "-":
-        if tile.direction is Direction.LEFT and maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
-            lefties.add((i - 1, j))
-        elif tile.direction is Direction.RIGHT and maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
+        if tile.direction is Direction.LEFT and maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
             lefties.add((i + 1, j))
+        elif tile.direction is Direction.RIGHT and maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
+            lefties.add((i - 1, j))
     elif symbol == "L":
         if tile.direction is Direction.UP:
             if maze.is_pos_legit(i, j - 1) and not maze.is_visited((i, j - 1)):
@@ -236,10 +237,10 @@ def add_to_righties(maze: Maze, curr_idx: int, righties: set) -> set:
         elif tile.direction is Direction.UP and maze.is_pos_legit(i, j + 1) and not maze.is_visited((i, j + 1)):
             righties.add((i, j + 1))
     elif symbol == "-":
-        if tile.direction is Direction.RIGHT and maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
-            righties.add((i - 1, j))
-        elif tile.direction is Direction.LEFT and maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
+        if tile.direction is Direction.RIGHT and maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
             righties.add((i + 1, j))
+        elif tile.direction is Direction.LEFT and maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
+            righties.add((i - 1, j))
     elif symbol == "L":
         if tile.direction is Direction.RIGHT:
             if maze.is_pos_legit(i, j - 1) and not maze.is_visited((i, j - 1)):
@@ -276,26 +277,28 @@ def add_to_righties(maze: Maze, curr_idx: int, righties: set) -> set:
     return righties
 
 
-def flood(maze: Maze, pos: tuple, flooded: set, touches_boundary: bool = False) -> tuple:
+def flood(maze: Maze, pos: tuple, flooded: set, touches_boundary: bool) -> tuple:
     (i, j) = pos
-    for (i_, j_) in ((i - 1, j - 1),
-                     (i - 1, j),
-                     (i - 1, j + 1),
+    new_touches_boundary = touches_boundary
+    for (i_, j_) in ((i - 1, j),
                      (i, j - 1),
                      (i, j + 1),
-                     (i + 1, j - 1),
-                     (i + 1, j),
-                     (i + 1, j + 1)):
+                     (i + 1, j)):
         if maze.is_pos_legit(i_, j_) and (i_, j_) not in flooded and not maze.is_visited((i_, j_)):
-            if (i_ == 0 or i_ == len(maze.maze) - 1) or (j_ == 0 or j_ == len(maze.maze[i_]) - 1):
-                touches_boundary = True
+            if i_ == 0 or i_ == (len(maze.maze) - 1) or j_ == 0 or j_ == (len(maze.maze[i_]) - 1):
+                new_touches_boundary = new_touches_boundary or True
             flooded.add((i_, j_))
-            (flooded, touches_boundary) = flood(maze, (i_, j_), flooded, touches_boundary)
+            (flooded, child_touches_boundary) = flood(maze, (i_, j_), flooded, new_touches_boundary)
+            new_touches_boundary = new_touches_boundary or child_touches_boundary
 
-    return flooded, touches_boundary
+    return flooded, new_touches_boundary
 
 
 def day10_part2(file_name: str) -> int:
+
+    # set the new recursion limit
+    sys.setrecursionlimit(10000)
+
     # read the maze from the file
     maze = Maze()
     maze.read_maze(file_name)
@@ -317,10 +320,6 @@ def day10_part2(file_name: str) -> int:
             break
 
     # pick the direction, start traversing the maze
-    print(f"Trail:")
-    for tile in maze.trail:
-        print(tile)
-
     lefties = set()
     righties = set()
     curr_idx = 0
@@ -332,20 +331,26 @@ def day10_part2(file_name: str) -> int:
         curr_idx += 1
 
     # for the tiles on the left, use flooding algorithm
-    new_lefties = set()
+    new_lefties = lefties.copy()
+    touches_boundary = False
     for leftie in lefties:
-        (new_lefties, touches_boundary) = flood(maze, leftie, new_lefties, False)
+        (new_lefties, new_touches_boundary) = flood(maze, leftie, new_lefties, touches_boundary)
+        touches_boundary = touches_boundary or new_touches_boundary
 
+    # print(f"Lefties: {len(lefties)}->{len(new_lefties)}; touches_boundary: {touches_boundary}")
     if not touches_boundary:
-        return len(new_lefties)
+       return len(new_lefties)
 
     # for the tiles on the right, use flooding algorithm
-    new_righties = set()
+    new_righties = righties.copy()
+    touches_boundary = False
     for rightie in righties:
-        (new_righties, touches_boundary) = flood(maze, rightie, new_righties, False)
+        (new_righties, new_touches_boundary) = flood(maze, rightie, new_righties, touches_boundary)
+        touches_boundary = touches_boundary or new_touches_boundary
 
+    # print(f"Righties: {len(righties)}->{len(new_righties)}; touches_boundary: {touches_boundary}")
     if not touches_boundary:
-        return len(new_righties)
+       return len(new_righties)
 
     # things went veeeery bad
     return 0
@@ -381,3 +386,7 @@ def test_day10_part2b():
 
 def test_day10_part2c():
     assert day10_part2("./input/day10h.txt") == 10
+
+
+def test_day10_part2d():
+    assert day10_part2("./input/day10e.txt") == 297
