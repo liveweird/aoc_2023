@@ -7,11 +7,26 @@ class Direction(Enum):
     LEFT = auto()
     RIGHT = auto()
 
+    def __str__(self):
+        if self is Direction.UP:
+            return "UP"
+        elif self is Direction.DOWN:
+            return "DOWN"
+        elif self is Direction.LEFT:
+            return "LEFT"
+        elif self is Direction.RIGHT:
+            return "RIGHT"
+        else:
+            return "UNKNOWN"
+
 
 class DirectedTile:
     def __init__(self, pos: tuple, direction: Direction):
         self.pos = pos
         self.direction = direction
+
+    def __str__(self):
+        return f"Pos: {self.pos}, Direction: {self.direction}"
 
 
 class Maze:
@@ -19,6 +34,7 @@ class Maze:
         self.maze = []
         self.start = None
         self.visited = {}
+        self.trail = []
 
     def read_maze(self, file_name: str):
         with open(file_name, "r") as f:
@@ -43,40 +59,42 @@ class Maze:
             return False
         return True
 
-    def find_next(self, i: int, j: int) -> DirectedTile or None:
+    def find_next(self, cur: tuple, prev: tuple) -> tuple:
+        (i, j) = cur
+        (k, l) = prev
         symbol = self.maze[i][j]
         if symbol == "|":
-            if self.is_pos_legit(i-1, j) and not self.is_visited((i-1, j)):
-                return DirectedTile((i-1, j), Direction.UP)
-            if self.is_pos_legit(i+1, j) and not self.is_visited((i+1, j)):
-                return DirectedTile((i+1, j), Direction.DOWN)
+            if self.is_pos_legit(i-1, j) and (i-1, j) != (k, l):
+                return DirectedTile((i-1, j), Direction.UP), cur
+            if self.is_pos_legit(i+1, j) and (i+1, j) != (k, l):
+                return DirectedTile((i+1, j), Direction.DOWN), cur
         elif symbol == "-":
-            if self.is_pos_legit(i, j-1) and not self.is_visited((i, j-1)):
-                return DirectedTile((i, j-1), Direction.LEFT)
-            if self.is_pos_legit(i, j+1) and not self.is_visited((i, j+1)):
-                return DirectedTile((i, j+1), Direction.RIGHT)
+            if self.is_pos_legit(i, j-1) and (i, j-1) != (k, l):
+                return DirectedTile((i, j-1), Direction.LEFT), cur
+            if self.is_pos_legit(i, j+1) and (i, j+1) != (k, l):
+                return DirectedTile((i, j+1), Direction.RIGHT), cur
         elif symbol == "L":
-            if self.is_pos_legit(i-1, j) and not self.is_visited((i-1, j)):
-                return DirectedTile((i-1, j), Direction.UP)
-            if self.is_pos_legit(i, j+1) and not self.is_visited((i, j+1)):
-                return DirectedTile((i, j+1), Direction.RIGHT)
+            if self.is_pos_legit(i-1, j) and (i-1, j) != (k, l):
+                return DirectedTile((i-1, j), Direction.UP), cur
+            if self.is_pos_legit(i, j+1) and (i, j+1) != (k, l):
+                return DirectedTile((i, j+1), Direction.RIGHT), cur
         elif symbol == "J":
-            if self.is_pos_legit(i-1, j) and not self.is_visited((i-1, j)):
-                return DirectedTile((i-1, j), Direction.UP)
-            if self.is_pos_legit(i, j-1) and not self.is_visited((i, j-1)):
-                return DirectedTile((i, j-1), Direction.LEFT)
+            if self.is_pos_legit(i-1, j) and (i-1, j) != (k, l):
+                return DirectedTile((i-1, j), Direction.UP), cur
+            if self.is_pos_legit(i, j-1) and (i, j-1) != (k, l):
+                return DirectedTile((i, j-1), Direction.LEFT), cur
         elif symbol == "7":
-            if self.is_pos_legit(i+1, j) and not self.is_visited((i+1, j)):
-                return DirectedTile((i+1, j), Direction.DOWN)
-            if self.is_pos_legit(i, j-1) and not self.is_visited((i, j-1)):
-                return DirectedTile((i, j-1), Direction.LEFT)
+            if self.is_pos_legit(i+1, j) and (i+1, j) != (k, l):
+                return DirectedTile((i+1, j), Direction.DOWN), cur
+            if self.is_pos_legit(i, j-1) and (i, j-1) != (k, l):
+                return DirectedTile((i, j-1), Direction.LEFT), cur
         elif symbol == "F":
-            if self.is_pos_legit(i+1, j) and not self.is_visited((i+1, j)):
-                return DirectedTile((i+1, j), Direction.DOWN)
-            if self.is_pos_legit(i, j+1) and not self.is_visited((i, j+1)):
-                return DirectedTile((i, j+1), Direction.RIGHT)
+            if self.is_pos_legit(i+1, j) and (i+1, j) != (k, l):
+                return DirectedTile((i+1, j), Direction.DOWN), cur
+            if self.is_pos_legit(i, j+1) and (i, j+1) != (k, l):
+                return DirectedTile((i, j+1), Direction.RIGHT), cur
 
-        return None
+        return None, cur
 
     def find_two_paths(self) -> tuple:
         paths = []
@@ -118,8 +136,11 @@ class Maze:
     def is_visited(self, pos: tuple) -> bool:
         return pos in self.visited.keys()
 
-    def add_to_visited(self, pos: tuple, dist: int, direction: Direction):
-        self.visited[pos] = (dist, direction)
+    def add_to_visited(self, pos: tuple, dist: int):
+        self.visited[pos] = dist
+
+    def add_to_trail(self, tile: DirectedTile):
+        self.trail.append(tile)
 
 
 def day10_part1(file_name: str) -> int:
@@ -132,23 +153,146 @@ def day10_part1(file_name: str) -> int:
     maze.find_start()
     # print(f"Start: {maze.start}")
     (tile1, tile2) = maze.find_two_paths()
-    maze.add_to_visited(maze.start, dist, tile1.direction)
+    maze.add_to_visited(maze.start, dist)
+    prev1 = maze.start
+    prev2 = maze.start
 
     while True:
         # print(f"Path1: {path1}, Path2: {path2}")
 
         # traverse left and right end
         dist += 1
-        maze.add_to_visited((tile1.pos[0], tile1.pos[1]), dist, tile1.direction)
-        maze.add_to_visited((tile2.pos[0], tile2.pos[1]), dist, tile2.direction)
+        maze.add_to_visited((tile1.pos[0], tile1.pos[1]), dist)
+        maze.add_to_visited((tile2.pos[0], tile2.pos[1]), dist)
 
-        tile1 = maze.find_next(tile1.pos[0], tile1.pos[1])
-        if tile1 is None:
+        (tile1, prev1) = maze.find_next(tile1.pos, prev1)
+        if tile1 is None or maze.is_visited(tile1.pos):
             return dist
 
-        tile2 = maze.find_next(tile2.pos[0], tile2.pos[1])
-        if tile2 is None:
+        (tile2, prev2) = maze.find_next(tile2.pos, prev2)
+        if tile2 is None or maze.is_visited(tile2.pos):
             return dist
+
+
+def add_to_lefties(maze: Maze, curr_idx: int, lefties: set) -> set:
+    tile = maze.trail[curr_idx]
+    (i, j) = (tile.pos[0], tile.pos[1])
+    symbol = maze.maze[i][j]
+
+    if symbol == "|":
+        if tile.direction is Direction.UP and maze.is_pos_legit(i, j - 1) and not maze.is_visited((i, j - 1)):
+            lefties.add((i, j - 1))
+        elif tile.direction is Direction.DOWN and maze.is_pos_legit(i, j + 1) and not maze.is_visited((i, j + 1)):
+            lefties.add((i, j + 1))
+    elif symbol == "-":
+        if tile.direction is Direction.LEFT and maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
+            lefties.add((i - 1, j))
+        elif tile.direction is Direction.RIGHT and maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
+            lefties.add((i + 1, j))
+    elif symbol == "L":
+        if tile.direction is Direction.UP:
+            if maze.is_pos_legit(i, j - 1) and not maze.is_visited((i, j - 1)):
+                lefties.add((i, j - 1))
+            if maze.is_pos_legit(i + 1, j - 1) and not maze.is_visited((i + 1, j - 1)):
+                lefties.add((i + 1, j - 1))
+            if maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
+                lefties.add((i + 1, j))
+    elif symbol == "J":
+        if tile.direction is Direction.LEFT:
+            if maze.is_pos_legit(i, j + 1) and not maze.is_visited((i, j + 1)):
+                lefties.add((i, j + 1))
+            if maze.is_pos_legit(i + 1, j + 1) and not maze.is_visited((i + 1, j + 1)):
+                lefties.add((i + 1, j + 1))
+            if maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
+                lefties.add((i + 1, j))
+    elif symbol == "7":
+        if tile.direction is Direction.DOWN:
+            if maze.is_pos_legit(i, j + 1) and not maze.is_visited((i, j + 1)):
+                lefties.add((i, j + 1))
+            if maze.is_pos_legit(i - 1, j + 1) and not maze.is_visited((i - 1, j + 1)):
+                lefties.add((i - 1, j + 1))
+            if maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
+                lefties.add((i - 1, j))
+    elif symbol == "F":
+        if tile.direction is Direction.RIGHT:
+            if maze.is_pos_legit(i, j - 1) and not maze.is_visited((i, j - 1)):
+                lefties.add((i, j - 1))
+            if maze.is_pos_legit(i - 1, j - 1) and not maze.is_visited((i - 1, j - 1)):
+                lefties.add((i - 1, j - 1))
+            if maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
+                lefties.add((i - 1, j))
+
+    return lefties
+
+
+def add_to_righties(maze: Maze, curr_idx: int, righties: set) -> set:
+    tile = maze.trail[curr_idx]
+    (i, j) = (tile.pos[0], tile.pos[1])
+    symbol = maze.maze[i][j]
+
+    if symbol == "|":
+        if tile.direction is Direction.DOWN and maze.is_pos_legit(i, j - 1) and not maze.is_visited((i, j - 1)):
+            righties.add((i, j - 1))
+        elif tile.direction is Direction.UP and maze.is_pos_legit(i, j + 1) and not maze.is_visited((i, j + 1)):
+            righties.add((i, j + 1))
+    elif symbol == "-":
+        if tile.direction is Direction.RIGHT and maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
+            righties.add((i - 1, j))
+        elif tile.direction is Direction.LEFT and maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
+            righties.add((i + 1, j))
+    elif symbol == "L":
+        if tile.direction is Direction.RIGHT:
+            if maze.is_pos_legit(i, j - 1) and not maze.is_visited((i, j - 1)):
+                righties.add((i, j - 1))
+            if maze.is_pos_legit(i + 1, j - 1) and not maze.is_visited((i + 1, j - 1)):
+                righties.add((i + 1, j - 1))
+            if maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
+                righties.add((i + 1, j))
+    elif symbol == "J":
+        if tile.direction is Direction.UP:
+            if maze.is_pos_legit(i, j + 1) and not maze.is_visited((i, j + 1)):
+                righties.add((i, j + 1))
+            if maze.is_pos_legit(i + 1, j + 1) and not maze.is_visited((i + 1, j + 1)):
+                righties.add((i + 1, j + 1))
+            if maze.is_pos_legit(i + 1, j) and not maze.is_visited((i + 1, j)):
+                righties.add((i + 1, j))
+    elif symbol == "7":
+        if tile.direction is Direction.LEFT:
+            if maze.is_pos_legit(i, j + 1) and not maze.is_visited((i, j + 1)):
+                righties.add((i, j + 1))
+            if maze.is_pos_legit(i - 1, j + 1) and not maze.is_visited((i - 1, j + 1)):
+                righties.add((i - 1, j + 1))
+            if maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
+                righties.add((i - 1, j))
+    elif symbol == "F":
+        if tile.direction is Direction.DOWN:
+            if maze.is_pos_legit(i, j - 1) and not maze.is_visited((i, j - 1)):
+                righties.add((i, j - 1))
+            if maze.is_pos_legit(i - 1, j - 1) and not maze.is_visited((i - 1, j - 1)):
+                righties.add((i - 1, j - 1))
+            if maze.is_pos_legit(i - 1, j) and not maze.is_visited((i - 1, j)):
+                righties.add((i - 1, j))
+
+    return righties
+
+
+def flood(maze: Maze, pos: tuple, flooded: set, touches_boundary: bool = False) -> tuple:
+    (i, j) = pos
+    for (i_, j_) in ((i - 1, j - 1),
+                     (i - 1, j),
+                     (i - 1, j + 1),
+                     (i, j - 1),
+                     (i, j + 1),
+                     (i + 1, j - 1),
+                     (i + 1, j),
+                     (i + 1, j + 1)):
+        if maze.is_pos_legit(i_, j_) and (i_, j_) not in flooded and not maze.is_visited((i_, j_)):
+            if (i_ == 0 or i_ == len(maze.maze) - 1) or (j_ == 0 or j_ == len(maze.maze[i_]) - 1):
+                touches_boundary = True
+            flooded.add((i_, j_))
+            (flooded, touches_boundary) = flood(maze, (i_, j_), flooded, touches_boundary)
+
+    return flooded, touches_boundary
 
 
 def day10_part2(file_name: str) -> int:
@@ -158,27 +302,52 @@ def day10_part2(file_name: str) -> int:
     dist = 0
     maze.find_start()
     (tile, _) = maze.find_two_paths()
-    maze.add_to_visited(maze.start, dist, tile.direction)
+    maze.add_to_visited(maze.start, dist)
+    maze.add_to_trail(DirectedTile(maze.start, tile.direction))
+    prev = maze.start
 
     # traverse the whole maze, to collect the list of tiles
     while True:
         dist += 1
-        maze.add_to_visited((tile.pos[0], tile.pos[1]), dist, tile.direction)
+        maze.add_to_visited((tile.pos[0], tile.pos[1]), dist)
 
-        tile = maze.find_next(tile.pos[0], tile.pos[1])
-        if tile is None:
+        (tile, prev) = maze.find_next(tile.pos, prev)
+        maze.add_to_trail(DirectedTile(prev, tile.direction))
+        if maze.is_visited(tile.pos):
             break
 
     # pick the direction, start traversing the maze
+    print(f"Trail:")
+    for tile in maze.trail:
+        print(tile)
+
     lefties = set()
     righties = set()
-    prev = len(maze.visited) - 1
-    curr = 0
+    curr_idx = 0
 
     # collect tiles on the left and right separately
+    while curr_idx < len(maze.trail):
+        lefties = add_to_lefties(maze, curr_idx, lefties)
+        righties = add_to_righties(maze, curr_idx, righties)
+        curr_idx += 1
+
     # for the tiles on the left, use flooding algorithm
+    new_lefties = set()
+    for leftie in lefties:
+        (new_lefties, touches_boundary) = flood(maze, leftie, new_lefties, False)
+
+    if not touches_boundary:
+        return len(new_lefties)
+
     # for the tiles on the right, use flooding algorithm
-    # return the size of the set of the tiles that doesn't touch boundaries
+    new_righties = set()
+    for rightie in righties:
+        (new_righties, touches_boundary) = flood(maze, rightie, new_righties, False)
+
+    if not touches_boundary:
+        return len(new_righties)
+
+    # things went veeeery bad
     return 0
 
 
