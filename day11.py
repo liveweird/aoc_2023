@@ -32,7 +32,7 @@ def manhattan_distance(galaxy1: Galaxy, galaxy2: Galaxy) -> int:
     return abs(galaxy1.x - galaxy2.x) + abs(galaxy1.y - galaxy2.y)
 
 
-def day11_part1(file_name: str, size: int) -> int:
+def day11_part1(file_name: str, size: int, to_add: int) -> int:
     # read the file & find the galaxies
     universe = read_file(file_name)
 
@@ -51,10 +51,10 @@ def day11_part1(file_name: str, size: int) -> int:
     for galaxy in universe:
         # update galaxies based on empty rows
         lesser_rows = [r for r in rows if r < galaxy.y]
-        galaxy.y += len(lesser_rows)
+        galaxy.y += (len(lesser_rows) * to_add)
         # update galaxies based on empty columns
         lesser_columns = [c for c in columns if c < galaxy.x]
-        galaxy.x += len(lesser_columns)
+        galaxy.x += (len(lesser_columns) * to_add)
 
     # find all the galaxy combinations
     total = 0
@@ -68,9 +68,20 @@ def day11_part1(file_name: str, size: int) -> int:
 
 
 def test_day11_part1a() -> None:
-    assert day11_part1("./input/day11a.txt", 10) == 374
+    assert day11_part1("./input/day11a.txt", 10, 1) == 374
 
 
 def test_day11_part1b() -> None:
-    assert day11_part1("./input/day11b.txt", 140) == 9418609
+    assert day11_part1("./input/day11b.txt", 140, 1) == 9418609
 
+
+def test_day11_part2a() -> None:
+    assert day11_part1("./input/day11a.txt", 10, 9) == 1030
+
+
+def test_day11_part2b() -> None:
+    assert day11_part1("./input/day11a.txt", 10, 99) == 8410
+
+
+def test_day11_part2c() -> None:
+    assert day11_part1("./input/day11b.txt", 140, 999999) == 593821230983
