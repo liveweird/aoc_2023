@@ -71,7 +71,30 @@ def day12_part1(file_name: str) -> int:
     # process puzzles, one by one
     result = 0
     for puzzle in puzzles:
-        result += count_combinations(puzzle);
+        result += count_combinations(puzzle)
+
+    return result
+
+
+def expand_puzzles(puzzles):
+    expanded_puzzles = []
+    for puzzle in puzzles:
+        to_process = "?".join([puzzle.to_process] * 5)
+        sequences = puzzle.sequences * 5
+        expanded_puzzles.append(Puzzle(to_process, sequences))
+
+    return expanded_puzzles
+
+
+def day12_part2(file_name: str) -> int:
+    puzzles = read_puzzles(file_name)
+    expanded_puzzles = expand_puzzles(puzzles)
+
+    # process puzzles, one by one
+    result = 0
+    for puzzle in expanded_puzzles:
+        # print(puzzle)
+        result += count_combinations(puzzle)
 
     return result
 
@@ -83,3 +106,10 @@ def test_day12_part1a() -> None:
 def test_day12_part1b() -> None:
     assert day12_part1("./input/day12b.txt") == 7506
 
+
+def test_day12_part1c() -> None:
+    assert day12_part2("./input/day12a.txt") == 525152
+
+
+def test_day12_part1d() -> None:
+    assert day12_part2("./input/day12b.txt") == 525152
