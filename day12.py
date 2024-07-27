@@ -1,4 +1,5 @@
 from typing import List
+import copy
 
 
 class Puzzle:
@@ -6,11 +7,29 @@ class Puzzle:
         self.to_process = to_process
         self.sequences = sequences
 
+    def __eq__(self, other):
+        return self.to_process == other.to_process and self.sequences == other.sequences
+
+    def __hash__(self):
+        return hash((self.to_process, tuple(self.sequences)))
+
     def strip_dots_left(self):
         self.to_process = self.to_process.lstrip(".")
 
     def __str__(self):
         return f"to_process: {self.to_process}, sequences: {self.sequences}"
+
+
+class Cache:
+    def __init__(self):
+        self.cache = {}
+
+    def set(self, puzzle: Puzzle, result: int):
+        # print(f"Setting cache for {puzzle} to {result}")
+        self.cache[puzzle] = result
+
+    def get(self, puzzle: Puzzle) -> int or None:
+        return self.cache.get(puzzle, None)
 
 
 def read_puzzles(file_name: str) -> List[Puzzle]:
@@ -34,7 +53,13 @@ def read_puzzles(file_name: str) -> List[Puzzle]:
     return puzzles
 
 
-def count_combinations(puzzle: Puzzle) -> int:
+def count_combinations(puzzle: Puzzle, cache: Cache) -> int:
+    in_cache = cache.get(puzzle)
+    if in_cache is not None:
+        # print("Cache hit")
+        return in_cache
+
+    puzzle_copy = copy.deepcopy(puzzle)
     result = 0
     # print(puzzle)
     # strip the empty spaces (dots) from the left
@@ -43,25 +68,30 @@ def count_combinations(puzzle: Puzzle) -> int:
     if len(puzzle.to_process) == 0:
         if len(puzzle.sequences) == 0:
             # print("Good path")
+            cache.set(puzzle_copy, 1)
             return 1
         else:
             # print("Bad path")
+            cache.set(puzzle_copy, 0)
             return 0
     # if the first character is a question mark, run the same function with the first character removed
     if puzzle.to_process[0] == "?":
-        result += count_combinations(Puzzle(puzzle.to_process[1:], puzzle.sequences))
+        result += count_combinations(Puzzle(puzzle.to_process[1:], puzzle.sequences), cache)
     # assume the first character is a hash
     if len(puzzle.sequences) == 0:
+        cache.set(puzzle_copy, result)
         return result
     curr_sequence = puzzle.sequences[0]
     if len(puzzle.to_process) < curr_sequence:
+        cache.set(puzzle_copy, result)
         return result
     # check the first sequence, confirm if the sequence is possible
     if all(next_char in ("#", "?") for next_char in puzzle.to_process[:curr_sequence]) \
-        and (len(puzzle.to_process) == curr_sequence \
+        and (len(puzzle.to_process) == curr_sequence
              or (len(puzzle.to_process) > curr_sequence and puzzle.to_process[curr_sequence] in (".", "?"))):
-        result += count_combinations(Puzzle(puzzle.to_process[curr_sequence+1:], puzzle.sequences[1:]))
+        result += count_combinations(Puzzle(puzzle.to_process[curr_sequence+1:], puzzle.sequences[1:]), cache)
 
+    cache.set(puzzle_copy, result)
     return result
 
 
@@ -70,8 +100,9 @@ def day12_part1(file_name: str) -> int:
 
     # process puzzles, one by one
     result = 0
+    cache = Cache()
     for puzzle in puzzles:
-        result += count_combinations(puzzle)
+        result += count_combinations(puzzle, cache)
 
     return result
 
@@ -92,9 +123,10 @@ def day12_part2(file_name: str) -> int:
 
     # process puzzles, one by one
     result = 0
+    cache = Cache()
     for puzzle in expanded_puzzles:
         # print(puzzle)
-        result += count_combinations(puzzle)
+        result += count_combinations(puzzle, cache)
 
     return result
 
@@ -112,4 +144,4 @@ def test_day12_part1c() -> None:
 
 
 def test_day12_part1d() -> None:
-    assert day12_part2("./input/day12b.txt") == 525152
+    assert day12_part2("./input/day12b.txt") == 548241300348335
