@@ -1,0 +1,38 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Python Tests",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "unittest",
+                "discover",
+                "-v",
+                "-s",
+                ".",
+                "-p",
+                "${input:fileName}"
+            ],
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [
+                "$pythonTestError"
+            ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "fileName",
+            "type": "promptString",
+            "description": "Enter the file name with tests to run:",
+            "default": "day13.py"
+        }
+    ]
+}
