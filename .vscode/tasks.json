@@ -32,7 +32,7 @@
             "id": "fileName",
             "type": "promptString",
             "description": "Enter the file name with tests to run:",
-            "default": "day13.py"
+            "default": "day14.py"
         }
     ]
 }
