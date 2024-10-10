@@ -76,7 +76,6 @@ class Ray:
 class Floor:
     def __init__(self):
         self.grid = []
-        self.rays: list[Ray] = [ Ray() ]
 
     def load(self, file_name: str):
         with open(file_name) as f:
@@ -101,10 +100,8 @@ class Day16:
             print()
 
     @staticmethod
-    def part1(file_name: str):
-        floor = Floor()
-        floor.load(file_name)
-        rays = floor.rays
+    def calc_energized(floor: Floor, ray: Ray = Ray()) -> int:
+        rays: list[Ray] = [ray]
         energized = set()
         history = set()
 
@@ -123,8 +120,36 @@ class Day16:
         return len(energized)
 
     @staticmethod
+    def part1(file_name: str):
+        floor = Floor()
+        floor.load(file_name)
+        start_ray = Ray()
+
+        energized = Day16.calc_energized(floor, start_ray)
+        return energized
+
+    @staticmethod
     def part2(file_name: str):
-        return 0
+        floor = Floor()
+        floor.load(file_name)
+
+        # create the list of all starter rays
+        rays = []
+        max_energized = 0
+        grid_size = len(floor.grid)
+        for i in range(0, grid_size):
+            rays.append(Ray((i, -1), DIRECTION.DOWN))
+            rays.append(Ray((i, grid_size), DIRECTION.UP))
+            rays.append(Ray((-1, i), DIRECTION.RIGHT))
+            rays.append(Ray((grid_size, i), DIRECTION.LEFT))
+
+        # iterate over all the starter rays
+        for ray in rays:
+            energized = Day16.calc_energized(floor, ray)
+            if energized > max_energized:
+                max_energized = energized
+
+        return max_energized
 
 class Tests(unittest.TestCase):
     def test_day16_part1a(self):
@@ -135,6 +160,12 @@ class Tests(unittest.TestCase):
 
     def test_day16_part1c(self):
         self.assertEqual(Day16.part1("input/day16c.txt"), 8034)
+
+    def test_day16_part2a(self):
+        self.assertEqual(Day16.part2("input/day16b.txt"), 51)
+
+    def test_day16_part2a(self):
+        self.assertEqual(Day16.part2("input/day16c.txt"), 8225)
 
 if __name__ == "__main__":
     unittest.main()
