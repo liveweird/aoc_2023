@@ -47,7 +47,7 @@ class Graph(Plane):
     def __init__(self, _map: Map):
         self.map = _map
         self.graph = [[{} for _ in range(_map.get_width())] for _ in range(_map.get_height())]
-        self.queue = [Runner()]
+        self.queue = [Runner(Position(0, 0), Direction.RIGHT), Runner(Position(0, 0), Direction.DOWN)]
 
     def are_we_done(self) -> bool:
         return len(self.queue) == 0
@@ -161,4 +161,4 @@ class Tests(unittest.TestCase):
        self.assertEqual(Day17.part2("input/day17c.txt"), 71)
 
     def test_day17_part2c(self):
-       self.assertEqual(Day17.part2("input/day17b.txt"), 71) #839 - too high
+       self.assertEqual(Day17.part2("input/day17b.txt"), 825)
